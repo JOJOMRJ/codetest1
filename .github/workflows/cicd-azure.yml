@@ -4,11 +4,13 @@ name: Deploy to Azure Static Web Apps
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main] # 新增：PR时也运行CI检查
 
 jobs:
   # CI 阶段：测试
   test:
-    name: Run Tests and Code Quality Checks # 添加清晰的名字
+    name: Run Tests and Code Quality Checks
     runs-on: ubuntu-latest
     steps:
       - name: 检出代码
@@ -26,11 +28,13 @@ jobs:
       # - name: 运行单元测试
       #   run: docker run --rm test-env npm test
 
-  # CD 阶段：部署到 Azure
+  # CD 阶段：部署到 Azure (只在main分支运行)
   build_and_deploy:
-    name: Build and Deploy to Azure # 更清晰的名字
-    needs: test # 依赖测试通过
+    name: Build and Deploy to Azure
+    needs: test
     runs-on: ubuntu-latest
+    # 重要：只在push到main时部署，PR时不部署
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - name: 检出代码
         uses: actions/checkout@v4
@@ -41,6 +45,6 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: 'upload'
-          app_location: '/' # 源代码位置
-          output_location: 'dist' # 构建输出目录
-          app_build_command: 'npm run build' # 构建命令
+          app_location: '/'
+          output_location: 'dist'
+          app_build_command: 'npm run build'
